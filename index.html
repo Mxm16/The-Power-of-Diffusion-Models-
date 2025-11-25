@@ -31,11 +31,6 @@
 
 <h1>CS180: Introduction to Computer Vision<br>Project 5 (Part A): Diffusion Models</h1>
 
-<p><strong>Student:</strong> Your Name<br>
-<strong>SID:</strong> XXXXXXXX<br>
-<strong>Course:</strong> CS180 at UC Berkeley<br>
-<strong>Seed Used:</strong> (fill in)</p>
-
 <hr>
 
 <!-- ================================================================ -->
@@ -122,18 +117,9 @@ The model produces reasonable reconstructions for low-noise inputs, but performa
 
 <h3>Denoising Progress</h3>
 <div class="img-row">
-  <figure><img src="img/iter_step0.png"><figcaption>Step 0</figcaption></figure>
-  <figure><img src="img/iter_step5.png"><figcaption>Step 5</figcaption></figure>
-  <figure><img src="img/iter_step10.png"><figcaption>Step 10</figcaption></figure>
+  <figure><img src="img/iter_0.png"><figcaption>>Denoising Progress</figcaption></figure>
 </div>
 
-<h3>Final Comparison</h3>
-<div class="img-row">
-  <figure><img src="img/iter_final.png"><figcaption>Iterative Result</figcaption></figure>
-  <figure><img src="img/onestep_final.png"><figcaption>One-Step</figcaption></figure>
-  <figure><img src="img/blur_final.png"><figcaption>Gaussian Blur</figcaption></figure>
-</div>
-</div>
 
 <!-- ================================================================ -->
 <div class="section">
@@ -163,6 +149,8 @@ CFG scale = 7 significantly improves sampling quality.</p>
   <figure><img src="img/cfg1.png"><figcaption>CFG Sample 1</figcaption></figure>
   <figure><img src="img/cfg2.png"><figcaption>CFG Sample 2</figcaption></figure>
   <figure><img src="img/cfg3.png"><figcaption>CFG Sample 3</figcaption></figure>
+  <figure><img src="img/cfg4.png"><figcaption>CFG Sample 4</figcaption></figure>
+  <figure><img src="img/cfg5.png"><figcaption>CFG Sample 5</figcaption></figure>
 </div>
 </div>
 
@@ -195,19 +183,18 @@ Edits grow stronger as noise increases.</p>
 
 <h3>Web Image Example</h3>
 <div class="img-row">
-  <figure><img src="img/web_1.png"><figcaption>i_start=1</figcaption></figure>
-  <figure><img src="img/web_20.png"><figcaption>i_start=20</figcaption></figure>
+  <figure><img src="img/web_1.png"><figcaption>i_start=1-20</figcaption></figure>
 </div>
 
 <h3>Hand-Drawn Examples</h3>
 <div class="img-row">
-  <figure><img src="img/draw1_1.png"><figcaption>Drawn Image 1 (i=1)</figcaption></figure>
-  <figure><img src="img/draw1_20.png"><figcaption>Drawn Image 1 (i=20)</figcaption></figure>
+  <figure><img src="img/draw1_1.png"><figcaption>Drawn Image 1 (i=1-20)</figcaption></figure>
+  <figure><img src="img/draw1_20.png"><figcaption>Drawn Image</figcaption></figure>
 </div>
 
 <div class="img-row">
-  <figure><img src="img/draw2_1.png"><figcaption>Drawn Image 2 (i=1)</figcaption></figure>
-  <figure><img src="img/draw2_20.png"><figcaption>Drawn Image 2 (i=20)</figcaption></figure>
+  <figure><img src="img/draw2_1.png"><figcaption>Drawn Image 2 (i=1-20)</figcaption></figure>
+  <figure><img src="img/draw2_20.png"><figcaption>Drawn Image(i=20)</figcaption></figure>
 </div>
 </div>
 
@@ -235,19 +222,9 @@ Edits grow stronger as noise increases.</p>
 <p>I used the prompt <strong>"an oil painting of a snowy mountain village"</strong> for text-guided projection.</p>
 
 <div class="img-row">
-  <figure><img src="img/txt_1.png"><figcaption>i_start=1</figcaption></figure>
-  <figure><img src="img/txt_3.png"><figcaption>i_start=3</figcaption></figure>
-  <figure><img src="img/txt_5.png"><figcaption>i_start=5</figcaption></figure>
-</div>
-
-<div class="img-row">
-  <figure><img src="img/txt_7.png"><figcaption>i_start=7</figcaption></figure>
-  <figure><img src="img/txt_10.png"><figcaption>i_start=10</figcaption></figure>
-  <figure><img src="img/txt_20.png"><figcaption>i_start=20</figcaption></figure>
-</div>
-
-<h3>Two More Images</h3>
-<p>(Insert your own here)</p>
+  <figure><img src="img/txt_1.png"><figcaption>i_start=1-20</figcaption></figure>
+  <figure><img src="img/txt_2.png"><figcaption>i_start=1-20</figcaption></figure>
+  <figure><img src="img/txt_3.png"><figcaption>i_start=1-20</figcaption></figure>
 </div>
 
 <!-- ================================================================ -->
@@ -266,6 +243,11 @@ Edits grow stronger as noise increases.</p>
   <figure><img src="img/anagram1_flipped.png"><figcaption>Flipped</figcaption></figure>
 </div>
 
+<ul>
+  <li><strong>"a pencil"</strong> (upright)</li>
+  <li><strong>"a rocket ship"</strong> (flipped)</li>
+</ul>
+  
 <div class="img-row">
   <figure><img src="img/anagram2_upright.png"><figcaption>Upright</figcaption></figure>
   <figure><img src="img/anagram2_flipped.png"><figcaption>Flipped</figcaption></figure>
