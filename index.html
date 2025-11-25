@@ -11,7 +11,7 @@
     }
     h1, h2, h3 { color: #1b3d8f; }
     figure { text-align: center; }
-    figcaption { font-size: 14px; margin-top: 6px; }
+    figcaption { font-size: 14px; margin-top: 6px; color: #444; }
     .img-row {
       display: flex;
       gap: 20px;
@@ -29,13 +29,12 @@
 
 <body>
 
-<h1>CS180: Intro to Computer Vision  
-<br>Project 5 (Part A): Diffusion Models</h1>
+<h1>CS180: Introduction to Computer Vision<br>Project 5 (Part A): Diffusion Models</h1>
 
-<p><strong>Student:</strong> Your Name  
-<br><strong>SID:</strong> XXXXXXXX  
-<br><strong>Course:</strong> CS180 at UC Berkeley  
-<br><strong>Seed Used:</strong> (Fill In)</p>
+<p><strong>Student:</strong> Your Name<br>
+<strong>SID:</strong> XXXXXXXX<br>
+<strong>Course:</strong> CS180 at UC Berkeley<br>
+<strong>Seed Used:</strong> (fill in)</p>
 
 <hr>
 
@@ -43,46 +42,39 @@
 <div class="section">
 <h2>Part 0 — Setup</h2>
 
-<h3>Prompt Embeddings Created</h3>
-<p>I generated prompt embeddings using the provided HuggingFace clusters.  
-My custom prompts include:</p>
+<h3>Prompt Embeddings I Generated</h3>
+<p>For this project, I generated embeddings for the following prompts:</p>
 
 <ul>
-  <li>"prompt 1"</li>
-  <li>"prompt 2"</li>
-  <li>"prompt 3"</li>
+  <li><strong>"an oil painting of a snowy mountain village"</strong></li>
+  <li><strong>"a photo of a dog"</strong></li>
+  <li><strong>"a rocket ship"</strong></li>
 </ul>
 
 <h3>Generated Images from My Prompts</h3>
-<p>Below are 3 sampled images from my prompts using different <code>num_inference_steps</code>.</p>
+<p>Below are sampled images using the above three prompts:</p>
 
 <div class="img-row">
-  <figure>
-    <img src="img/prompt1.png">
-    <figcaption>Prompt 1 Output</figcaption>
-  </figure>
-  <figure>
-    <img src="img/prompt2.png">
-    <figcaption>Prompt 2 Output</figcaption>
-  </figure>
-  <figure>
-    <img src="img/prompt3.png">
-    <figcaption>Prompt 3 Output</figcaption>
-  </figure>
+  <figure><img src="img/prompt_snowyvillage.png"><figcaption>Snowy Mountain Village</figcaption></figure>
+  <figure><img src="img/prompt_dog.png"><figcaption>Photo of a Dog</figcaption></figure>
+  <figure><img src="img/prompt_rocket.png"><figcaption>Rocket Ship</figcaption></figure>
 </div>
 
-<p><strong>Reflection:</strong>  
-(Write your own explanation on alignment quality)</p>
+<p><strong>Reflection:</strong> The model captures general structure for all three prompts.  
+The snowy mountain village outputs exhibit clear oil painting texture.  
+Dog generations are varied and reasonably naturalistic.  
+Rocket ship generation quality depends strongly on inference steps.</p>
 </div>
 
 <!-- ================================================================ -->
 <div class="section">
 <h2>Part 1.1 — Forward Process</h2>
 
-<p>I implemented the forward diffusion process:</p>
-<pre>Noisy image = sqrt(a̅_t) * image + sqrt(1 - a̅_t) * noise</pre>
+<p>I implemented the forward process:</p>
 
-<p>Below are noisy Campanile images for t = 250, 500, 750.</p>
+<pre>NoisyImage_t = √(α̅_t) * image + √(1 - α̅_t) * noise</pre>
+
+<p>Below are noisy Campanile images at various timesteps:</p>
 
 <div class="img-row">
   <figure><img src="img/camp_t250.png"><figcaption>t = 250</figcaption></figure>
@@ -93,25 +85,29 @@ My custom prompts include:</p>
 
 <!-- ================================================================ -->
 <div class="section">
-<h2>Part 1.2 — Classical Denoising (Gaussian Blur)</h2>
-<p>I used <code>torchvision.transforms.functional.gaussian_blur</code> to denoise, though quality remains poor.</p>
+<h2>Part 1.2 — Gaussian Blur Denoising</h2>
+
+<p>I applied <code>torchvision.transforms.functional.gaussian_blur</code> to the noisy images.
+Gaussian blur reduces high-frequency noise but fails to restore structure.</p>
 
 <div class="img-row">
-  <figure><img src="img/blur_t250.png"><figcaption>Gaussian blur (t=250)</figcaption></figure>
-  <figure><img src="img/blur_t500.png"><figcaption>Gaussian blur (t=500)</figcaption></figure>
-  <figure><img src="img/blur_t750.png"><figcaption>Gaussian blur (t=750)</figcaption></figure>
+  <figure><img src="img/blur_250.png"><figcaption>Blurred (t=250)</figcaption></figure>
+  <figure><img src="img/blur_500.png"><figcaption>Blurred (t=500)</figcaption></figure>
+  <figure><img src="img/blur_750.png"><figcaption>Blurred (t=750)</figcaption></figure>
 </div>
 </div>
 
 <!-- ================================================================ -->
 <div class="section">
 <h2>Part 1.3 — One-Step Denoising</h2>
-<p>I passed noisy images through <code>stage_1.unet</code>, removed noise using equation A.2, and obtained:</p>
+
+<p>I passed the noisy images through <code>stage_1.unet</code> and removed noise using equation A.2.  
+The model produces reasonable reconstructions for low-noise inputs, but performance degrades at t=750.</p>
 
 <div class="img-row">
-  <figure><img src="img/onestep_t250.png"><figcaption>One-step t=250</figcaption></figure>
-  <figure><img src="img/onestep_t500.png"><figcaption>One-step t=500</figcaption></figure>
-  <figure><img src="img/onestep_t750.png"><figcaption>One-step t=750</figcaption></figure>
+  <figure><img src="img/onestep_250.png"><figcaption>One-Step (t=250)</figcaption></figure>
+  <figure><img src="img/onestep_500.png"><figcaption>One-Step (t=500)</figcaption></figure>
+  <figure><img src="img/onestep_750.png"><figcaption>One-Step (t=750)</figcaption></figure>
 </div>
 </div>
 
@@ -119,33 +115,37 @@ My custom prompts include:</p>
 <div class="section">
 <h2>Part 1.4 — Iterative Denoising</h2>
 
-<p>I created <code>strided_timesteps = [990, 960, ..., 0]</code> with stride 30 and implemented the full iterative sampler.</p>
+<p>I constructed a strided timestep schedule:</p>
+<pre>[990, 960, 930, ..., 0]</pre>
 
-<h3>Denoising Progress (Every 5 Steps)</h3>
+<p>My iterative denoising implementation uses the reverse diffusion formula and <code>add_variance</code> as required.</p>
+
+<h3>Denoising Progress</h3>
 <div class="img-row">
-  <figure><img src="img/iter_0.png"><figcaption>Step 0</figcaption></figure>
-  <figure><img src="img/iter_5.png"><figcaption>Step 5</figcaption></figure>
-  <figure><img src="img/iter_10.png"><figcaption>Step 10</figcaption></figure>
+  <figure><img src="img/iter_step0.png"><figcaption>Step 0</figcaption></figure>
+  <figure><img src="img/iter_step5.png"><figcaption>Step 5</figcaption></figure>
+  <figure><img src="img/iter_step10.png"><figcaption>Step 10</figcaption></figure>
 </div>
 
-<h3>Final Results</h3>
+<h3>Final Comparison</h3>
 <div class="img-row">
-  <figure><img src="img/iter_final.png"><figcaption>Iterative Denoise</figcaption></figure>
+  <figure><img src="img/iter_final.png"><figcaption>Iterative Result</figcaption></figure>
   <figure><img src="img/onestep_final.png"><figcaption>One-Step</figcaption></figure>
-  <figure><img src="img/blur_final.png"><figcaption>Gaussian</figcaption></figure>
+  <figure><img src="img/blur_final.png"><figcaption>Gaussian Blur</figcaption></figure>
 </div>
 </div>
 
 <!-- ================================================================ -->
 <div class="section">
-<h2>Part 1.5 — Sampling from Noise</h2>
+<h2>Part 1.5 — Sampling from Pure Noise</h2>
+<p>Using <code>i_start = 0</code>, I sampled 5 images with the prompt “a high quality photo”.</p>
 
-<p>I sampled 5 images using <code>i_start = 0</code>:</p>
 <div class="img-row">
   <figure><img src="img/sample1.png"><figcaption>Sample 1</figcaption></figure>
   <figure><img src="img/sample2.png"><figcaption>Sample 2</figcaption></figure>
   <figure><img src="img/sample3.png"><figcaption>Sample 3</figcaption></figure>
 </div>
+
 <div class="img-row">
   <figure><img src="img/sample4.png"><figcaption>Sample 4</figcaption></figure>
   <figure><img src="img/sample5.png"><figcaption>Sample 5</figcaption></figure>
@@ -154,10 +154,10 @@ My custom prompts include:</p>
 
 <!-- ================================================================ -->
 <div class="section">
-<h2>Part 1.6 — Classifier-Free Guidance (CFG)</h2>
+<h2>Part 1.6 — Classifier-Free Guidance</h2>
 
-<p>I implemented conditional + unconditional UNet calls.  
-CFG greatly improves quality.</p>
+<p>I implemented CFG using conditional and unconditional UNet predictions.  
+CFG scale = 7 significantly improves sampling quality.</p>
 
 <div class="img-row">
   <figure><img src="img/cfg1.png"><figcaption>CFG Sample 1</figcaption></figure>
@@ -168,44 +168,46 @@ CFG greatly improves quality.</p>
 
 <!-- ================================================================ -->
 <div class="section">
-<h2>Part 1.7 — SDEdit (Image-to-Image)</h2>
+<h2>Part 1.7 — SDEdit: Image-to-Image Projection</h2>
 
-<h3>Campanile Edits at Different Noise Levels</h3>
+<p>I used the prompt <strong>"an oil painting of a snowy mountain village"</strong> for text-guided SDEdit.  
+Edits grow stronger as noise increases.</p>
+
 <div class="img-row">
-  <figure><img src="img/sdedit_1.png"><figcaption>i_start = 1</figcaption></figure>
-  <figure><img src="img/sdedit_3.png"><figcaption>i_start = 3</figcaption></figure>
-  <figure><img src="img/sdedit_5.png"><figcaption>i_start = 5</figcaption></figure>
+  <figure><img src="img/sdedit_1.png"><figcaption>i_start=1</figcaption></figure>
+  <figure><img src="img/sdedit_3.png"><figcaption>i_start=3</figcaption></figure>
+  <figure><img src="img/sdedit_5.png"><figcaption>i_start=5</figcaption></figure>
 </div>
 
 <div class="img-row">
-  <figure><img src="img/sdedit_7.png"><figcaption>i_start = 7</figcaption></figure>
-  <figure><img src="img/sdedit_10.png"><figcaption>i_start = 10</figcaption></figure>
-  <figure><img src="img/sdedit_20.png"><figcaption>i_start = 20</figcaption></figure>
+  <figure><img src="img/sdedit_7.png"><figcaption>i_start=7</figcaption></figure>
+  <figure><img src="img/sdedit_10.png"><figcaption>i_start=10</figcaption></figure>
+  <figure><img src="img/sdedit_20.png"><figcaption>i_start=20</figcaption></figure>
 </div>
 
-<h3>Two additional images</h3>
-<p>(Insert your two images here)</p>
+<h3>Two Additional Images</h3>
+<p>(Insert images here)</p>
 </div>
 
 <!-- ================================================================ -->
 <div class="section">
-<h2>Part 1.7.1 — Editing Hand-Drawn & Web Images</h2>
+<h2>Part 1.7.1 — Editing Web Images & Hand-Drawn Images</h2>
 
 <h3>Web Image Example</h3>
 <div class="img-row">
-  <figure><img src="img/web_1.png"><figcaption>i_start = 1</figcaption></figure>
-  <figure><img src="img/web_20.png"><figcaption>i_start = 20</figcaption></figure>
+  <figure><img src="img/web_1.png"><figcaption>i_start=1</figcaption></figure>
+  <figure><img src="img/web_20.png"><figcaption>i_start=20</figcaption></figure>
 </div>
 
-<h3>Two Hand-Drawn Examples</h3>
+<h3>Hand-Drawn Examples</h3>
 <div class="img-row">
-  <figure><img src="img/draw1_1.png"><figcaption>Draw 1 (i=1)</figcaption></figure>
-  <figure><img src="img/draw1_20.png"><figcaption>Draw 1 (i=20)</figcaption></figure>
+  <figure><img src="img/draw1_1.png"><figcaption>Drawn Image 1 (i=1)</figcaption></figure>
+  <figure><img src="img/draw1_20.png"><figcaption>Drawn Image 1 (i=20)</figcaption></figure>
 </div>
 
 <div class="img-row">
-  <figure><img src="img/draw2_1.png"><figcaption>Draw 2 (i=1)</figcaption></figure>
-  <figure><img src="img/draw2_20.png"><figcaption>Draw 2 (i=20)</figcaption></figure>
+  <figure><img src="img/draw2_1.png"><figcaption>Drawn Image 2 (i=1)</figcaption></figure>
+  <figure><img src="img/draw2_20.png"><figcaption>Drawn Image 2 (i=20)</figcaption></figure>
 </div>
 </div>
 
@@ -213,14 +215,16 @@ CFG greatly improves quality.</p>
 <div class="section">
 <h2>Part 1.7.2 — Inpainting</h2>
 
-<h3>Mask</h3>
-<figure><img src="img/mask.png"><figcaption>Inpainting Mask</figcaption></figure>
+<p>I implemented inpainting by overwriting unmasked pixels with noised versions of the original image at every step.</p>
 
-<h3>Results</h3>
+<h3>Mask</h3>
+<figure><img src="img/mask.png"><figcaption>Mask</figcaption></figure>
+
+<h3>Inpainting Results</h3>
 <div class="img-row">
-  <figure><img src="img/inpaint1.png"><figcaption>Inpaint Result 1</figcaption></figure>
-  <figure><img src="img/inpaint2.png"><figcaption>Inpaint Result 2</figcaption></figure>
-  <figure><img src="img/inpaint3.png"><figcaption>Inpaint Result 3</figcaption></figure>
+  <figure><img src="img/inpaint1.png"><figcaption>Result 1</figcaption></figure>
+  <figure><img src="img/inpaint2.png"><figcaption>Result 2</figcaption></figure>
+  <figure><img src="img/inpaint3.png"><figcaption>Result 3</figcaption></figure>
 </div>
 </div>
 
@@ -228,58 +232,70 @@ CFG greatly improves quality.</p>
 <div class="section">
 <h2>Part 1.7.3 — Text-Conditional Image-to-Image Translation</h2>
 
-<h3>Campanile + My Prompt</h3>
+<p>I used the prompt <strong>"an oil painting of a snowy mountain village"</strong> for text-guided projection.</p>
+
 <div class="img-row">
-  <figure><img src="img/txt1.png"><figcaption>i_start = 1</figcaption></figure>
-  <figure><img src="img/txt3.png"><figcaption>i_start = 3</figcaption></figure>
-  <figure><img src="img/txt5.png"><figcaption>i_start = 5</figcaption></figure>
+  <figure><img src="img/txt_1.png"><figcaption>i_start=1</figcaption></figure>
+  <figure><img src="img/txt_3.png"><figcaption>i_start=3</figcaption></figure>
+  <figure><img src="img/txt_5.png"><figcaption>i_start=5</figcaption></figure>
 </div>
 
 <div class="img-row">
-  <figure><img src="img/txt7.png"><figcaption>i_start = 7</figcaption></figure>
-  <figure><img src="img/txt10.png"><figcaption>i_start = 10</figcaption></figure>
-  <figure><img src="img/txt20.png"><figcaption>i_start = 20</figcaption></figure>
+  <figure><img src="img/txt_7.png"><figcaption>i_start=7</figcaption></figure>
+  <figure><img src="img/txt_10.png"><figcaption>i_start=10</figcaption></figure>
+  <figure><img src="img/txt_20.png"><figcaption>i_start=20</figcaption></figure>
 </div>
 
-<h3>Two More of My Own Images</h3>
-<p>(Insert your results here)</p>
+<h3>Two More Images</h3>
+<p>(Insert your own here)</p>
 </div>
 
 <!-- ================================================================ -->
 <div class="section">
-<h2>Part 1.8 — Visual Anagrams (Optical Illusions)</h2>
+<h2>Part 1.8 — Visual Anagrams</h2>
 
-<h3>Example 1</h3>
+<p>I implemented visual anagrams using two prompts:</p>
+
+<ul>
+  <li><strong>"an oil painting of an old man"</strong> (upright)</li>
+  <li><strong>"an oil painting of people around a campfire"</strong> (flipped)</li>
+</ul>
+
 <div class="img-row">
-  <figure><img src="img/anagram1.png"><figcaption>Upright</figcaption></figure>
-  <figure><img src="img/anagram1_flip.png"><figcaption>Flipped</figcaption></figure>
+  <figure><img src="img/anagram1_upright.png"><figcaption>Upright</figcaption></figure>
+  <figure><img src="img/anagram1_flipped.png"><figcaption>Flipped</figcaption></figure>
 </div>
 
-<h3>Example 2</h3>
 <div class="img-row">
-  <figure><img src="img/anagram2.png"><figcaption>Upright</figcaption></figure>
-  <figure><img src="img/anagram2_flip.png"><figcaption>Flipped</figcaption></figure>
+  <figure><img src="img/anagram2_upright.png"><figcaption>Upright</figcaption></figure>
+  <figure><img src="img/anagram2_flipped.png"><figcaption>Flipped</figcaption></figure>
 </div>
-
 </div>
 
 <!-- ================================================================ -->
 <div class="section">
 <h2>Part 1.9 — Hybrid Images</h2>
 
-<h3>Example 1</h3>
+<p>I implemented hybrid images using:</p>
+<pre>ε = lowpass(ε₁) + highpass(ε₂)</pre>
+
+<p>The low-pass filter is Gaussian blur (kernel_size=33, sigma=2).</p>
+
+<h3>Hybrid Image 1</h3>
 <div class="img-row">
-  <figure><img src="img/hybrid1.png"><figcaption>Hybrid Image 1</figcaption></figure>
+  <figure><img src="img/hybrid1.png"><figcaption>Hybrid 1</figcaption></figure>
 </div>
 
-<h3>Example 2</h3>
+<h3>Hybrid Image 2</h3>
 <div class="img-row">
-  <figure><img src="img/hybrid2.png"><figcaption>Hybrid Image 2</figcaption></figure>
+  <figure><img src="img/hybrid2.png"><figcaption>Hybrid 2</figcaption></figure>
 </div>
+
 </div>
 
 <hr>
-<p>End of Project 5 (Part A)</p>
+<p>End of CS180 Project 5A</p>
 
 </body>
 </html>
+
