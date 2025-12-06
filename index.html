@@ -275,6 +275,159 @@ Edits grow stronger as noise increases.</p>
 <hr>
 <p>End of CS180 Project 5A</p>
 
+<hr>
+
+<!-- ================================================================ -->
+<h1>Project 5 (Part B): Flow Matching from Scratch</h1>
+
+<div class="section">
+<h2>Overview</h2>
+<p>
+In this part, we train our own flow-matching generative model on the MNIST dataset.
+Unlike Part A, where diffusion models were used for image synthesis, here we implement
+and train UNets from scratch to perform denoising and generation using flow matching.
+</p>
+</div>
+
+<!-- ================================================================ -->
+<div class="section">
+<h2>Part 1 — Single-Step Denoising UNet</h2>
+
+<h3>UNet Architecture</h3>
+<p>
+We implement an unconditional UNet consisting of downsampling and upsampling blocks
+with skip connections. The network is trained using an L2 loss to map noisy images
+directly to clean MNIST digits.
+</p>
+
+<h3>Noising Process Visualization</h3>
+<figure>
+  <img src="images/part1_noise.png">
+  <figcaption>Visualization of the noising process for increasing noise levels</figcaption>
+</figure>
+
+<h3>Training Loss</h3>
+<figure>
+  <img src="images/part1_loss.png">
+  <figcaption>Training loss curve for single-step denoising UNet</figcaption>
+</figure>
+
+<h3>Denoising Results</h3>
+<div class="img-row">
+  <figure><img src="images/part1_epoch1.png"><figcaption>Epoch 1</figcaption></figure>
+  <figure><img src="images/part1_epoch5.png"><figcaption>Epoch 5</figcaption></figure>
+</div>
+
+<h3>Out-of-Distribution Noise Levels</h3>
+<figure>
+  <img src="images/part1_ood.png">
+  <figcaption>Denoising results on unseen noise levels</figcaption>
+</figure>
+
+<h3>Denoising Pure Noise</h3>
+<div class="img-row">
+  <figure><img src="images/part1_pure_epoch1.png"><figcaption>Epoch 1</figcaption></figure>
+  <figure><img src="images/part1_pure_epoch5.png"><figcaption>Epoch 5</figcaption></figure>
+</div>
+
+<p>
+When trained with an MSE loss on pure noise, the network converges to predicting the
+average of the training data distribution. As a result, the generated outputs appear
+as blurry digit-like patterns resembling the centroid of MNIST digits.
+</p>
+</div>
+
+<!-- ================================================================ -->
+<div class="section">
+<h2>Part 2 — Flow Matching</h2>
+
+<h3>Time-Conditioned UNet</h3>
+<p>
+To enable iterative denoising, we extend the UNet with time conditioning.
+A scalar timestep <code>t ∈ [0,1]</code> is injected into the UNet via fully-connected
+conditioning blocks (FCBlocks), allowing the model to learn the flow field from noise
+to clean images.
+</p>
+
+<h3>Training Loss</h3>
+<figure>
+  <img src="images/part2_time_loss.png">
+  <figcaption>Training loss curve for time-conditioned UNet</figcaption>
+</figure>
+
+<h3>Sampling Results</h3>
+<div class="img-row">
+  <figure><img src="images/part2_time_epoch1.png"><figcaption>Epoch 1</figcaption></figure>
+  <figure><img src="images/part2_time_epoch5.png"><figcaption>Epoch 5</figcaption></figure>
+  <figure><img src="images/part2_time_epoch10.png"><figcaption>Epoch 10</figcaption></figure>
+</div>
+</div>
+
+<!-- ================================================================ -->
+<div class="section">
+<h2>Class-Conditioned Flow Matching</h2>
+
+<p>
+To improve convergence speed and generation quality, we further condition the UNet
+on digit class labels using one-hot encodings. Classifier-free guidance is employed
+by randomly dropping the class-conditioning signal during training.
+</p>
+
+<h3>Training Loss</h3>
+<figure>
+  <img src="images/part2_class_loss.png">
+  <figcaption>Training loss curve for class-conditioned UNet</figcaption>
+</figure>
+
+<h3>Sampling Results (Epoch 1, 5, 10)</h3>
+<figure>
+  <img src="images/part2_class_epoch1.png">
+  <img src="images/part2_class_epoch5.png">
+  <img src="images/part2_class_epoch10.png">
+  <figcaption>
+    Class-conditioned samples.
+    Each row corresponds to one digit (0–9) with four samples per class.
+  </figcaption>
+</figure>
+</div>
+
+<!-- ================================================================ -->
+<div class="section">
+<h2>Removing the Learning Rate Scheduler</h2>
+
+<p>
+We remove the exponential learning rate scheduler to simplify training.
+To compensate for the lack of learning rate decay, we reduce the learning
+rate from <code>1e-2</code> to <code>1e-3</code>.
+</p>
+
+<p>
+This modification leads to stable training and comparable convergence.
+The visual quality of generated samples remains similar to models trained
+with a scheduler.
+</p>
+
+<figure>
+  <img src="images/part2_no_sched_epoch10.png">
+  <figcaption>Class-conditioned samples trained without learning rate scheduler</figcaption>
+</figure>
+</div>
+
+<!-- ================================================================ -->
+<div class="section">
+<h2>Conclusion</h2>
+
+<p>
+In this project, we explored denoising and generative modeling using flow matching.
+Time conditioning enables iterative generation, while class conditioning significantly
+improves convergence speed and controllability. These experiments demonstrate the
+effectiveness of flow matching as a principled alternative to diffusion models.
+</p>
+</div>
+
+<hr>
+<p><strong>End of CS180 Project 5 – Part B</strong></p>
+
 </body>
 </html>
 
