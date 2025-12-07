@@ -313,8 +313,10 @@ directly to clean MNIST digits.
 </figure>
 
 <h3>Denoising Results</h3>
-  <figure><img src="img/part1_epoch1.png"><figcaption>Epoch 1,5</figcaption></figure>
-
+<figure>
+  <img src="img/part1_epoch1.png">
+  <figcaption>Epoch 1,5</figcaption>
+</figure>
 
 <h3>Out-of-Distribution Noise Levels</h3>
 <figure>
@@ -327,13 +329,24 @@ directly to clean MNIST digits.
   <figure><img src="img/part1_pure_epoch1.png"><figcaption>Epoch 1</figcaption></figure>
   <figure><img src="img/part1_pure_epoch5.png"><figcaption>Epoch 5</figcaption></figure>
 </div>
-  <img src="img/part1_loss1.png">
+<img src="img/part1_loss1.png">
+
 <p>
 When trained with an MSE loss on pure noise, the network converges to predicting the
-average of the training data distribution. As a result, the generated outputs appear
-as blurry digit-like patterns resembling the centroid of MNIST digits.
+average of the training data distribution. This is because the input contains no information
+about which digit to generate. Mathematically, the MSE loss encourages the model to output:
+</p>
+<pre>
+y* = argmin_y E[(y - x_digit)^2]
+</pre>
+<p>
+The solution y* is the mean (centroid) of all MNIST digits. As a result, the generated outputs 
+look like blurry digit-like patterns that resemble the “average” of many digits blended together,
+rather than distinct real digits. This explains why all denoised outputs look almost the same
+when the network is trained on pure noise.
 </p>
 </div>
+
 
 <!-- ================================================================ -->
 <div class="section">
