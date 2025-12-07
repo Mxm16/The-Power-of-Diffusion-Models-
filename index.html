@@ -394,22 +394,38 @@ by randomly dropping the class-conditioning signal during training.
 <h2>Removing the Learning Rate Scheduler</h2>
 
 <p>
-We remove the exponential learning rate scheduler to simplify training.
-To compensate for the lack of learning rate decay, we reduce the learning
-rate from <code>1e-2</code> to <code>1e-3</code>.
+To simplify the training pipeline, we removed the exponential learning rate
+scheduler from the class-conditioned UNet training.
+Originally, the model was trained with an initial learning rate of
+<code>1e-2</code> combined with exponential decay.
+After removing the scheduler, we compensated by lowering the fixed learning
+rate to <code>1e-3</code>, while keeping all other training settings unchanged.
 </p>
 
 <p>
-This modification leads to stable training and comparable convergence.
-The visual quality of generated samples remains similar to models trained
-with a scheduler.
+With this smaller constant learning rate, training remained stable and
+converged to a loss comparable to the scheduler-based training.
+As shown in the sampling results below, the generated digits after 10 epochs
+exhibit similar visual quality, class consistency, and diversity.
+This suggests that a carefully chosen fixed learning rate can effectively
+replace the learning rate scheduler for this task.
 </p>
-
+<h3>Training Loss</h3>
 <figure>
+  <img src="img/part2_no_sched_loss.png">
+  <figcaption>Training loss curve  without a learning rate scheduler for class-conditioned UNet</figcaption>
+</figure>
+<figure>
+  <img src="img/part2_no_sched_epoch1.png">
+  <img src="img/part2_no_sched_epoch5.png">
   <img src="img/part2_no_sched_epoch10.png">
-  <figcaption>Class-conditioned samples trained without learning rate scheduler</figcaption>
+  <figcaption>
+    Class-conditioned samples after 10 epochs of training without a learning
+    rate scheduler.
+  </figcaption>
 </figure>
 </div>
+
 
 <!-- ================================================================ -->
 <div class="section">
