@@ -318,15 +318,6 @@ Given a clean image x and noise level σ, the noisy image is constructed as:
 <pre>
 x_noisy = x + σ · ε,   ε ~ N(0, I)
 </pre>
-
-<!-- ======================= 1.2.1 ======================= -->
-<h4>1.2.1 Training</h4>
-
-<p>
-The UNet is trained to denoise images corrupted by randomly sampled noise levels.
-Noise is added on-the-fly for each batch, improving robustness and generalization.
-</p>
-
 <figure>
   <img src="img/part1_noise.png">
   <figcaption>
@@ -334,6 +325,13 @@ Noise is added on-the-fly for each batch, improving robustness and generalizatio
     [0.0, 0.2, 0.4, 0.5, 0.6, 0.8, 1.0]
   </figcaption>
 </figure>
+<!-- ======================= 1.2.1 ======================= -->
+<h4>1.2.1 Training</h4>
+
+<p>
+The UNet is trained to denoise images corrupted by randomly sampled noise levels.
+Noise is added on-the-fly for each batch, improving robustness and generalization.
+</p>
 
 <figure>
   <img src="img/part1_loss.png">
