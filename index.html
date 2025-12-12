@@ -32,8 +32,6 @@
 <h1>CS180: Introduction to Computer Vision<br>Project 5 (Part A): Diffusion Models</h1>
 
 <hr>
-
-<!-- ================================================================ -->
 <h2>Part 0 — Setup</h2>
 
 <h3>Random Seed</h3>
@@ -65,21 +63,22 @@
 <p>
 The model produced recognizable samples for all three prompts.  
 The snowy mountain village images consistently captured an oil-painting texture.  
-The dog images were natural-looking, though lower inference steps resulted in slightly more noise.  
+The dog images were natural-looking, although lower inference steps resulted in slightly more noise.  
 The rocket ship prompt showed the clearest difference:  
 20 inference steps produced blurrier edges and artifacts, while 50 steps resulted in cleaner structure and better-defined shapes.  
 This confirms that higher inference steps significantly improve coherence and detail.
 </p>
 
-<!-- ================================================================ -->
+<hr>
 <div class="section">
 <h2>Part 1.1 — Forward Process</h2>
 
-<p>I implemented the forward process:</p>
+<p><strong>Approach & Function Explanation:</strong> The <code>forward(im, t)</code> function adds noise to a clean image <code>im</code> at timestep <code>t</code>. The formula is:<br>
+<code>NoisyImage_t = sqrt(alpha_bar_t) * image + sqrt(1 - alpha_bar_t) * noise</code><br>
+where <code>alpha_bar_t</code> comes from <code>alphas_cumprod[t]</code>.  
+Noise is generated using <code>torch.randn_like(im)</code> to ensure randomness.</p>
 
-<pre>NoisyImage_t = √(α̅_t) * image + √(1 - α̅_t) * noise</pre>
-
-<p>Below are noisy Campanile images at various timesteps:</p>
+<p>Campanile images at different timesteps:</p>
 
 <div class="img-row">
   <figure><img src="img/camp_t250.png"><figcaption>t = 250</figcaption></figure>
@@ -88,22 +87,23 @@ This confirms that higher inference steps significantly improve coherence and de
 </div>
 </div>
 
-<!-- ================================================================ -->
+<hr>
 <div class="section">
 <h2>Part 1.2 — Gaussian Blur Denoising</h2>
 
-<p>I applied <code>torchvision.transforms.functional.gaussian_blur</code> to the noisy images.
-Gaussian blur reduces high-frequency noise but fails to restore structure.</p>
+<p><strong>Approach & Function Explanation:</strong> We use <code>torchvision.transforms.functional.gaussian_blur</code> to denoise the noisy image.  
+The function <code>gaussian_blur(image, kernel_size, sigma)</code> removes high-frequency noise but cannot recover overall structure, so the effect is limited.</p>
 
 <figure><img src="img/blur_250.png"><figcaption>Blurred (t=250)</figcaption></figure>
 </div>
 
-<!-- ================================================================ -->
+<hr>
 <div class="section">
 <h2>Part 1.3 — One-Step Denoising</h2>
 
-<p>I passed the noisy images through <code>stage_1.unet</code> and removed noise using equation A.2.  
-The model produces reasonable reconstructions for low-noise inputs, but performance degrades at t=750.</p>
+<p><strong>Approach & Function Explanation:</strong> The <code>one_step_denoise(im_noisy, t, prompt_embeds)</code> function uses a pretrained UNet to predict noise <code>ε_hat</code> and then estimates the original image <code>x0_hat</code> using formula A.2:<br>
+<code>x0_hat = (im_noisy - sqrt(1-α̅_t) * ε_hat) / sqrt(α̅_t)</code><br>
+This method works well at low noise, but performance drops with higher noise.</p>
 
 <div class="img-row">
   <figure><img src="img/onestep_250.png"><figcaption>One-Step (t=250)</figcaption></figure>
@@ -112,43 +112,47 @@ The model produces reasonable reconstructions for low-noise inputs, but performa
 </div>
 </div>
 
-<!-- ================================================================ -->
+<hr>
 <div class="section">
 <h2>Part 1.4 — Iterative Denoising</h2>
 
-<p>I constructed a strided timestep schedule:</p>
-<pre>[990, 960, 930, ..., 0]</pre>
-
-<p>My iterative denoising implementation uses the reverse diffusion formula and <code>add_variance</code> as required.</p>
+<p><strong>Approach & Function Explanation:</strong> The <code>iterative_denoise(im_noisy, i_start)</code> function denoises the image iteratively from the corresponding timestep.  
+At each step, we compute:</p>
+<pre>
+x_{t'} = sqrt(alpha_bar_{t'}) * x0_hat + sqrt(1 - alpha_bar_{t'}) * ε + add_variance(...)
+</pre>
+<p>Here, <code>x0_hat</code> is the one-step estimate, and <code>add_variance</code> adds predicted noise variance to maintain diversity in generated samples.</p>
 
 <h3>Denoising Progress</h3>
-  <figure><img src="img/iter_0.png"><figcaption>>Denoising Progress</figcaption></figure>
+<figure><img src="img/iter_0.png"><figcaption>Denoising Progress</figcaption></figure>
+</div>
 
-
-
-<!-- ================================================================ -->
+<hr>
 <div class="section">
 <h2>Part 1.5 — Sampling from Pure Noise</h2>
-<p>Using <code>i_start = 0</code>, I sampled 5 images with the prompt “a high quality photo”.</p>
+
+<p><strong>Approach & Function Explanation:</strong> Using <code>iterative_denoise(im_noisy, i_start=0)</code> we can sample images starting from pure random noise, effectively mapping noise to natural image distribution.</p>
 
 <div class="img-row">
   <figure><img src="img/sample1.png"><figcaption>Sample 1</figcaption></figure>
   <figure><img src="img/sample2.png"><figcaption>Sample 2</figcaption></figure>
   <figure><img src="img/sample3.png"><figcaption>Sample 3</figcaption></figure>
 </div>
-
 <div class="img-row">
   <figure><img src="img/sample4.png"><figcaption>Sample 4</figcaption></figure>
   <figure><img src="img/sample5.png"><figcaption>Sample 5</figcaption></figure>
 </div>
 </div>
 
-<!-- ================================================================ -->
+<hr>
 <div class="section">
-<h2>Part 1.6 — Classifier-Free Guidance</h2>
+<h2>Part 1.6 — Classifier-Free Guidance (CFG)</h2>
 
-<p>I implemented CFG using conditional and unconditional UNet predictions.  
-CFG scale = 7 significantly improves sampling quality.</p>
+<p><strong>Approach & Function Explanation:</strong> The <code>iterative_denoise_cfg(im_noisy, i_start, prompt_embeds, scale)</code> function computes both conditional and unconditional noise predictions, then combines them:</p>
+<pre>
+ε = ε_uncond + scale * (ε_cond - ε_uncond)
+</pre>
+<p>This amplifies the conditional signal, improving details and structure compared to un-guided sampling.</p>
 
 <div class="img-row">
   <figure><img src="img/cfg1.png"><figcaption>CFG Sample 1</figcaption></figure>
@@ -161,45 +165,42 @@ CFG scale = 7 significantly improves sampling quality.</p>
 </div>
 </div>
 
-<!-- ================================================================ -->
+<hr>
 <div class="section">
 <h2>Part 1.7 — SDEdit: Image-to-Image Projection</h2>
 
-<p>I used the prompt <strong>"an oil painting of a snowy mountain village"</strong> for text-guided SDEdit.  
-Edits grow stronger as noise increases.</p>
+<p><strong>Approach & Function Explanation:</strong> The <code>sdedit(im, i_start, prompt_embeds)</code> function adds noise to an input image and then iteratively denoises it.  
+Higher noise results in stronger edits. Text guidance can be added with CFG to perform style transfer or naturalization.</p>
 
+<div class="img-row">
   <figure><img src="img/sdedit_1.png"><figcaption>i_start=1-20</figcaption></figure>
   <figure><img src="img/sdedit_2.png"><figcaption>i_start=1-20</figcaption></figure>
   <figure><img src="img/sdedit_3.png"><figcaption>i_start=1-20</figcaption></figure>
+</div>
+</div>
 
-
-
-<!-- ================================================================ -->
+<hr>
 <div class="section">
 <h2>Part 1.7.1 — Editing Web Images & Hand-Drawn Images</h2>
 
+<p><strong>Approach:</strong> Non-photorealistic images are projected onto the natural image manifold using noise addition and iterative denoising. The function is the same as SDEdit; only the input image changes.</p>
+
 <h3>Web Image Example</h3>
-
-  <figure><img src="img/web_1.png"><figcaption>i_start=1-20</figcaption></figure>
-
+<figure><img src="img/web_1.png"><figcaption>i_start=1-20</figcaption></figure>
 
 <h3>Hand-Drawn Examples</h3>
-
-  <figure><img src="img/draw1_1.png"><figcaption>Drawn Image 1 (i=1-20)</figcaption></figure>
-  <figure><img src="img/draw1_20.png"><figcaption>Drawn Image</figcaption></figure>
-
-
-
-  <figure><img src="img/draw2_1.png"><figcaption>Drawn Image 2 (i=1-20)</figcaption></figure>
-  <figure><img src="img/draw2_20.png"><figcaption>Drawn Image(i=20)</figcaption></figure>
-
+<figure><img src="img/draw1_1.png"><figcaption>Drawn Image 1 (i=1-20)</figcaption></figure>
+<figure><img src="img/draw1_20.png"><figcaption>Drawn Image</figcaption></figure>
+<figure><img src="img/draw2_1.png"><figcaption>Drawn Image 2 (i=1-20)</figcaption></figure>
+<figure><img src="img/draw2_20.png"><figcaption>Drawn Image (i=20)</figcaption></figure>
 </div>
 
-<!-- ================================================================ -->
+<hr>
 <div class="section">
 <h2>Part 1.7.2 — Inpainting</h2>
 
-<p>I implemented inpainting by overwriting unmasked pixels with noised versions of the original image at every step.</p>
+<p><strong>Approach & Function Explanation:</strong> The <code>inpaint(im, mask, i_start, prompt_embeds)</code> function performs iterative denoising while keeping unmasked regions from the original noisy image.  
+This ensures that only masked areas are regenerated. It is essentially <code>iterative_denoise_cfg</code> with a mask constraint.</p>
 
 <h3>Mask</h3>
 <figure><img src="img/mask.png"><figcaption>Mask</figcaption></figure>
@@ -212,53 +213,42 @@ Edits grow stronger as noise increases.</p>
 </div>
 </div>
 
-<!-- ================================================================ -->
+<hr>
 <div class="section">
 <h2>Part 1.7.3 — Text-Conditional Image-to-Image Translation</h2>
 
-<p>I used the prompt <strong>"an oil painting of a snowy mountain village"</strong> for text-guided projection.</p>
+<p><strong>Approach:</strong> SDEdit guided by text prompts to control style and content of the image. The function is the same as SDEdit, only the prompt changes.</p>
 
 <div class="img-row">
   <figure><img src="img/txt_1.png"><figcaption>i_start=1-20</figcaption></figure>
   <figure><img src="img/txt_2.png"><figcaption>i_start=1-20</figcaption></figure>
   <figure><img src="img/txt_3.png"><figcaption>i_start=1-20</figcaption></figure>
 </div>
+</div>
 
-<!-- ================================================================ -->
+<hr>
 <div class="section">
 <h2>Part 1.8 — Visual Anagrams</h2>
 
-<p>I implemented visual anagrams using two prompts:</p>
-
-<ul>
-  <li><strong>"an oil painting of an old man"</strong> (upright)</li>
-  <li><strong>"an oil painting of people around a campfire"</strong> (flipped)</li>
-</ul>
+<p><strong>Approach & Function Explanation:</strong> The <code>visual_anagrams(im, prompt_up, prompt_flip)</code> function computes noise predictions for both upright and flipped images, averages them, and generates a perceptual illusion. Implementation is based on iterative denoising with CFG.</p>
 
 <div class="img-row">
   <figure><img src="img/anagram1_upright.png"><figcaption>Upright</figcaption></figure>
   <figure><img src="img/anagram1_flipped.png"><figcaption>Flipped</figcaption></figure>
 </div>
 
-<ul>
-  <li><strong>"a pencil"</strong> (upright)</li>
-  <li><strong>"a rocket ship"</strong> (flipped)</li>
-</ul>
-  
 <div class="img-row">
   <figure><img src="img/anagram2_upright.png"><figcaption>Upright</figcaption></figure>
   <figure><img src="img/anagram2_flipped.png"><figcaption>Flipped</figcaption></figure>
 </div>
 </div>
 
-<!-- ================================================================ -->
+<hr>
 <div class="section">
 <h2>Part 1.9 — Hybrid Images</h2>
 
-<p>I implemented hybrid images using:</p>
-<pre>ε = lowpass(ε₁) + highpass(ε₂)</pre>
-
-<p>The low-pass filter is Gaussian blur (kernel_size=33, sigma=2).</p>
+<p><strong>Approach & Function Explanation:</strong> The <code>make_hybrids(im, prompt1, prompt2)</code> function combines two prompts by taking low-frequency noise from one and high-frequency noise from the other.  
+Low-frequency is extracted using Gaussian Blur (kernel_size=33, sigma=2), high-frequency = original - low-frequency. Implementation is similar to iterative denoising.</p>
 
 <h3>Hybrid Image 1</h3>
 <div class="img-row">
@@ -269,12 +259,10 @@ Edits grow stronger as noise increases.</p>
 <div class="img-row">
   <figure><img src="img/hybrid2.png"><figcaption>Hybrid 2</figcaption></figure>
 </div>
-
 </div>
 
 <hr>
 <p>End of CS180 Project 5A</p>
-
 <hr>
 
 <!-- ================================================================ -->
@@ -325,12 +313,14 @@ x_noisy = x + σ · ε,   ε ~ N(0, I)
     [0.0, 0.2, 0.4, 0.5, 0.6, 0.8, 1.0]
   </figcaption>
 </figure>
-<!-- ======================= 1.2.1 ======================= -->
-<h4>1.2.1 Training</h4>
 
+<h4>1.2.1 Training</h4>
 <p>
-The UNet is trained to denoise images corrupted by randomly sampled noise levels.
-Noise is added on-the-fly for each batch, improving robustness and generalization.
+<b>Implementation idea:</b>  
+For each batch, sample clean images and generate new noisy images on-the-fly using a random σ. 
+Feed the noisy batch through the UNet, compute L2 loss with respect to the clean images, 
+and backpropagate to update weights. Repeat for multiple epochs so the model learns to 
+denoise a range of noise levels.
 </p>
 
 <figure>
@@ -343,12 +333,11 @@ Noise is added on-the-fly for each batch, improving robustness and generalizatio
   <figcaption>Sample denoising results after Epoch 1 and Epoch 5</figcaption>
 </figure>
 
-<!-- ======================= 1.2.2 ======================= -->
 <h4>1.2.2 Out-of-Distribution Testing</h4>
-
 <p>
-We evaluate the trained denoiser on noise levels not seen during training to assess
-its ability to generalize beyond the training noise distribution.
+<b>Implementation idea:</b>  
+After training, feed noisy images with σ values not seen during training through the trained UNet. 
+This tests whether the network generalizes to noise levels outside the training distribution.
 </p>
 
 <figure>
@@ -356,13 +345,12 @@ its ability to generalize beyond the training noise distribution.
   <figcaption>Denoising results on unseen noise levels</figcaption>
 </figure>
 
-<!-- ======================= 1.2.3 ======================= -->
 <h4>1.2.3 Denoising Pure Noise</h4>
-
 <p>
-To turn denoising into a generative task, we train the UNet to denoise pure Gaussian noise.
-This setting removes all information about the underlying digit and tests whether the
-model can perform unconditional generation.
+<b>Implementation idea:</b>  
+Replace clean inputs with pure Gaussian noise. Train the UNet to predict the expected clean image from noise. 
+This simulates unconditional generation. Since MSE minimizes squared distance, the model will converge 
+to the mean of all training images, explaining why outputs are blurry and similar.
 </p>
 
 <div class="img-row">
@@ -375,22 +363,10 @@ model can perform unconditional generation.
   <figcaption>Training loss while denoising pure noise</figcaption>
 </figure>
 
-<p>
-When trained with an MSE loss on pure noise, the network converges to predicting the
-average of the training data distribution. Since the input contains no information
-about which digit should be generated, the optimal solution under an L2 objective is:
-</p>
-
 <pre>
 y* = argmin_y E[(y - x_digit)^2]
 </pre>
 
-<p>
-The solution corresponds to the mean (centroid) of all MNIST digits. Consequently,
-the generated outputs appear as blurry, averaged digit-like patterns rather than
-distinct digits. All samples look nearly identical, explaining why single-step
-denoising fails as a generative model.
-</p>
 </div>
 
 <!-- ================================================================ -->
@@ -403,22 +379,22 @@ which enables iterative denoising by learning a continuous vector field that tra
 noise to the data distribution.
 </p>
 
-<!-- ======================= 2.1 ======================= -->
 <h3>2.1 Time-Conditioned UNet</h3>
-
 <p>
-We extend the UNet by conditioning it on a continuous timestep t ∈ [0,1].
-Fully-connected conditioning blocks (FCBlocks) inject the timestep into intermediate
-layers, allowing the model to learn a time-dependent flow field.
+<b>Implementation idea:</b>  
+Introduce scalar timestep t ∈ [0,1] and embed it via FCBlocks into intermediate layers. 
+This lets the UNet learn a flow that depends on the current timestep, enabling smooth interpolation 
+from noise to clean images.
 </p>
 
-<!-- ======================= 2.2 ======================= -->
 <h3>2.2 Training the Time-Conditioned UNet</h3>
-
 <p>
-During training, we sample a clean image x, a random timestep t, and construct an
-interpolated noisy image. The UNet is trained to predict the flow field that moves
-the sample toward the clean data distribution.
+<b>Implementation idea:</b>  
+For each batch: sample a clean image x and a random timestep t.  
+Construct the noisy input x_t by interpolating between x and noise.  
+Predict the flow field v(x_t, t) with the UNet.  
+Compute L2 loss between predicted flow and true flow (x - x_t)/dt.  
+Backpropagate and update the UNet weights. Repeat for all batches across multiple epochs.
 </p>
 
 <figure>
@@ -426,12 +402,12 @@ the sample toward the clean data distribution.
   <figcaption>Training loss curve for time-conditioned UNet</figcaption>
 </figure>
 
-<!-- ======================= 2.3 ======================= -->
 <h3>2.3 Sampling from the Time-Conditioned UNet</h3>
-
 <p>
-Sampling is performed by iteratively updating a noisy image using the predicted flow.
-As training progresses, digit-like structures gradually emerge.
+<b>Implementation idea:</b>  
+Start from pure Gaussian noise. At each timestep, feed current image and timestep into the UNet to predict the flow.  
+Update the image along the flow direction. Iterate through all timesteps from 0 to 1.  
+As training progresses, the network gradually transforms noise into recognizable digits.
 </p>
 
 <div class="img-row">
@@ -440,25 +416,32 @@ As training progresses, digit-like structures gradually emerge.
   <figure><img src="img/part2_time_epoch10.png"><figcaption>Epoch 10</figcaption></figure>
 </div>
 
-<!-- ======================= 2.4 ======================= -->
 <h3>2.4 Adding Class Conditioning</h3>
-
 <p>
-To improve generation quality and controllability, we further condition the UNet on
-digit class labels using one-hot encodings. Classifier-free guidance is applied by
-randomly dropping the class-conditioning signal during training.
+<b>Implementation idea:</b>  
+Introduce a one-hot class vector c for digit labels. Embed c via FCBlocks and inject into UNet layers.  
+Randomly drop c 10% of the time for classifier-free guidance, enabling both conditional and unconditional generation.
 </p>
 
-<!-- ======================= 2.5 ======================= -->
 <h3>2.5 Training the Class-Conditioned UNet</h3>
+<p>
+<b>Implementation idea:</b>  
+Same as time-conditioned training, but concatenate or add the class-conditioning embedding to intermediate layers.  
+Loss remains L2 between predicted and true flow. Random dropout of class embeddings ensures the model can also generate unconditionally.
+</p>
 
 <figure>
   <img src="img/part2_class_loss.png">
   <figcaption>Training loss curve for class-conditioned UNet</figcaption>
 </figure>
 
-<!-- ======================= 2.6 ======================= -->
 <h3>2.6 Sampling with Class Conditioning</h3>
+<p>
+<b>Implementation idea:</b>  
+Start from noise. At each timestep, provide both the current image and the one-hot class vector to the UNet to predict flow.  
+Update the image along the flow. Repeat for all timesteps to generate digit-specific images.  
+Use classifier-free guidance to improve sample quality.
+</p>
 
 <figure>
   <img src="img/part2_class_epoch1.png">
@@ -470,13 +453,12 @@ randomly dropping the class-conditioning signal during training.
   </figcaption>
 </figure>
 
-<!-- ======================= Scheduler ======================= -->
 <h3>Removing the Learning Rate Scheduler</h3>
-
 <p>
-To simplify training, we removed the exponential learning rate scheduler and compensated
-by reducing the fixed learning rate from <code>1e-2</code> to <code>1e-3</code>.
-Training remained stable and achieved comparable performance.
+<b>Implementation idea:</b>  
+Removed the exponential decay scheduler for simplicity.  
+Compensate by lowering the fixed learning rate (1e-2 → 1e-3) and monitor training.  
+Training remains stable and convergence is similar.
 </p>
 
 <figure>
@@ -508,7 +490,6 @@ significantly improves convergence and controllability.
 
 <hr>
 <p><strong>End of CS180 Project 5 – Part B</strong></p>
-
 
 </body>
 </html>
