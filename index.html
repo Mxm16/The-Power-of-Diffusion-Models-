@@ -34,236 +34,202 @@
 <hr>
 <h2>Part 0 — Setup</h2>
 
-<h3>Random Seed</h3>
-<p>The random seed used for all image generations is <strong>100</strong>.</p>
+<p><strong>Random Seed:</strong> 100</p>
 
-<h3>Prompt Embeddings I Generated</h3>
-<p>I generated embeddings for the following prompts:</p>
+<h3>Prompt Embeddings</h3>
 <ul>
-  <li><strong>"an oil painting of a snowy mountain village"</strong></li>
-  <li><strong>"a photo of a dog"</strong></li>
-  <li><strong>"a rocket ship"</strong></li>
+  <li>"an oil painting of a snowy mountain village"</li>
+  <li>"a photo of a dog"</li>
+  <li>"a rocket ship"</li>
 </ul>
 
-<h3>Generated Images (20 Inference Steps)</h3>
+<h3>Generated Images</h3>
+<p>Generated images at 20 and 50 inference steps demonstrate the effect of step size on image clarity.</p>
 <div class="img-row">
-  <figure><img src="img/prompt_snowyvillage.png"><figcaption>Snowy Mountain Village</figcaption></figure>
-  <figure><img src="img/prompt_dog.png"><figcaption>Photo of a Dog</figcaption></figure>
-  <figure><img src="img/prompt_rocket.png"><figcaption>Rocket Ship</figcaption></figure>
+  <figure><img src="img/prompt_snowyvillage.png" alt="Snowy Village 20 steps"><figcaption>Snowy Village (20 steps)</figcaption></figure>
+  <figure><img src="img/prompt_snowyvillage1.png" alt="Snowy Village 50 steps"><figcaption>Snowy Village (50 steps)</figcaption></figure>
 </div>
 
-<h3>Generated Images (50 Inference Steps)</h3>
-<div class="img-row">
-  <figure><img src="img/prompt_snowyvillage1.png"><figcaption>Snowy Mountain Village</figcaption></figure>
-  <figure><img src="img/prompt_dog1.png"><figcaption>Photo of a Dog</figcaption></figure>
-  <figure><img src="img/prompt_rocket1.png"><figcaption>Rocket Ship</figcaption></figure>
-</div>
-
-<h3>Reflection</h3>
-<p>
-The model produced recognizable samples for all three prompts.  
-The snowy mountain village images consistently captured an oil-painting texture.  
-The dog images were natural-looking, although lower inference steps resulted in slightly more noise.  
-The rocket ship prompt showed the clearest difference:  
-20 inference steps produced blurrier edges and artifacts, while 50 steps resulted in cleaner structure and better-defined shapes.  
-This confirms that higher inference steps significantly improve coherence and detail.
-</p>
+<p><strong>Reflection:</strong> Higher inference steps improve clarity and edge definition. Dog images are natural-looking, and rocket ship images benefit the most from increased steps.</p>
 
 <hr>
-<div class="section">
 <h2>Part 1.1 — Forward Process</h2>
 
-<p><strong>Approach & Function Explanation:</strong> The <code>forward(im, t)</code> function adds noise to a clean image <code>im</code> at timestep <code>t</code>. The formula is:<br>
-<code>NoisyImage_t = sqrt(alpha_bar_t) * image + sqrt(1 - alpha_bar_t) * noise</code><br>
-where <code>alpha_bar_t</code> comes from <code>alphas_cumprod[t]</code>.  
-Noise is generated using <code>torch.randn_like(im)</code> to ensure randomness.</p>
-
-<p>Campanile images at different timesteps:</p>
+<p>The forward process adds noise to an image according to the diffusion equation:</p>
+<pre>
+x_t = √(α̅_t) * x_0 + √(1 - α̅_t) * ε
+</pre>
+<p><strong>Thought Process:</strong> Gradually corrupt the image with Gaussian noise so the model can learn to recover x₀ from noisy inputs. Larger t corresponds to more noise.</p>
 
 <div class="img-row">
   <figure><img src="img/camp_t250.png"><figcaption>t = 250</figcaption></figure>
   <figure><img src="img/camp_t500.png"><figcaption>t = 500</figcaption></figure>
   <figure><img src="img/camp_t750.png"><figcaption>t = 750</figcaption></figure>
 </div>
-</div>
 
 <hr>
-<div class="section">
 <h2>Part 1.2 — Gaussian Blur Denoising</h2>
 
-<p><strong>Approach & Function Explanation:</strong> We use <code>torchvision.transforms.functional.gaussian_blur</code> to denoise the noisy image.  
-The function <code>gaussian_blur(image, kernel_size, sigma)</code> removes high-frequency noise but cannot recover overall structure, so the effect is limited.</p>
-
-<figure><img src="img/blur_250.png"><figcaption>Blurred (t=250)</figcaption></figure>
-</div>
-
-<hr>
-<div class="section">
-<h2>Part 1.3 — One-Step Denoising</h2>
-
-<p><strong>Approach & Function Explanation:</strong> The <code>one_step_denoise(im_noisy, t, prompt_embeds)</code> function uses a pretrained UNet to predict noise <code>ε_hat</code> and then estimates the original image <code>x0_hat</code> using formula A.2:<br>
-<code>x0_hat = (im_noisy - sqrt(1-α̅_t) * ε_hat) / sqrt(α̅_t)</code><br>
-This method works well at low noise, but performance drops with higher noise.</p>
+<p>Applied classical Gaussian blur to noisy images:</p>
+<pre>torchvision.transforms.functional.gaussian_blur()</pre>
+<p><strong>Thought Process:</strong> High-frequency noise is reduced but image structure is not fully restored. This demonstrates why learned denoising is superior.</p>
 
 <div class="img-row">
-  <figure><img src="img/onestep_250.png"><figcaption>One-Step (t=250)</figcaption></figure>
-  <figure><img src="img/onestep_500.png"><figcaption>One-Step (t=500)</figcaption></figure>
-  <figure><img src="img/onestep_750.png"><figcaption>One-Step (t=750)</figcaption></figure>
-</div>
+  <figure><img src="img/blur_250.png"><figcaption>Blurred (t=250)</figcaption></figure>
 </div>
 
 <hr>
-<div class="section">
+<h2>Part 1.3 — One-Step Denoising</h2>
+
+<p>Equation for one-step denoising:</p>
+<pre>
+x̂_0 = (x_t - √(1-α̅_t) * ε̂_θ(x_t, t, c)) / √(α̅_t)
+</pre>
+<p><strong>Thought Process:</strong> Predict the noise with the UNet and analytically solve for x₀. Works well for low noise levels (small t) but deteriorates with higher noise.</p>
+
+<div class="img-row">
+  <figure><img src="img/onestep_250.png"><figcaption>t = 250</figcaption></figure>
+  <figure><img src="img/onestep_500.png"><figcaption>t = 500</figcaption></figure>
+  <figure><img src="img/onestep_750.png"><figcaption>t = 750</figcaption></figure>
+</div>
+
+<hr>
 <h2>Part 1.4 — Iterative Denoising</h2>
 
-<p><strong>Approach & Function Explanation:</strong> The <code>iterative_denoise(im_noisy, i_start)</code> function denoises the image iteratively from the corresponding timestep.  
-At each step, we compute:</p>
+<p>Reverse diffusion equation used for iterative denoising:</p>
 <pre>
-x_{t'} = sqrt(alpha_bar_{t'}) * x0_hat + sqrt(1 - alpha_bar_{t'}) * ε + add_variance(...)
+x_{t-1} = 1/√(α_t) * (x_t - (1-α_t)/√(1-α̅_t) * ε̂_θ(x_t, t, c)) + σ_t * z
 </pre>
-<p>Here, <code>x0_hat</code> is the one-step estimate, and <code>add_variance</code> adds predicted noise variance to maintain diversity in generated samples.</p>
+<p><strong>Thought Process:</strong> At each timestep, remove predicted noise and optionally add small variance. Iterate from high t → 0 to recover clean image.</p>
 
 <h3>Denoising Progress</h3>
-<figure><img src="img/iter_0.png"><figcaption>Denoising Progress</figcaption></figure>
-</div>
+<figure><img src="img/iter_0.png"><figcaption>Iterative Denoising Steps</figcaption></figure>
 
 <hr>
-<div class="section">
 <h2>Part 1.5 — Sampling from Pure Noise</h2>
 
-<p><strong>Approach & Function Explanation:</strong> Using <code>iterative_denoise(im_noisy, i_start=0)</code> we can sample images starting from pure random noise, effectively mapping noise to natural image distribution.</p>
+<p>Set i_start = 0 and sample 5 images from random Gaussian noise:</p>
+<p><strong>Thought Process:</strong> Use iterative denoising to generate images from scratch without any input. Quality is limited without CFG.</p>
 
 <div class="img-row">
   <figure><img src="img/sample1.png"><figcaption>Sample 1</figcaption></figure>
   <figure><img src="img/sample2.png"><figcaption>Sample 2</figcaption></figure>
   <figure><img src="img/sample3.png"><figcaption>Sample 3</figcaption></figure>
-</div>
-<div class="img-row">
   <figure><img src="img/sample4.png"><figcaption>Sample 4</figcaption></figure>
   <figure><img src="img/sample5.png"><figcaption>Sample 5</figcaption></figure>
 </div>
-</div>
 
 <hr>
-<div class="section">
 <h2>Part 1.6 — Classifier-Free Guidance (CFG)</h2>
 
-<p><strong>Approach & Function Explanation:</strong> The <code>iterative_denoise_cfg(im_noisy, i_start, prompt_embeds, scale)</code> function computes both conditional and unconditional noise predictions, then combines them:</p>
+<p>CFG equation:</p>
 <pre>
-ε = ε_uncond + scale * (ε_cond - ε_uncond)
+ε̂ = ε̂_uncond + w * (ε̂_cond - ε̂_uncond)
 </pre>
-<p>This amplifies the conditional signal, improving details and structure compared to un-guided sampling.</p>
+<p><strong>Thought Process:</strong> Compute unconditional and conditional noise estimates, amplify the conditional direction with guidance scale w to improve alignment with prompt.</p>
 
 <div class="img-row">
   <figure><img src="img/cfg1.png"><figcaption>CFG Sample 1</figcaption></figure>
   <figure><img src="img/cfg2.png"><figcaption>CFG Sample 2</figcaption></figure>
   <figure><img src="img/cfg3.png"><figcaption>CFG Sample 3</figcaption></figure>
-</div>
-<div class="img-row">
   <figure><img src="img/cfg4.png"><figcaption>CFG Sample 4</figcaption></figure>
   <figure><img src="img/cfg5.png"><figcaption>CFG Sample 5</figcaption></figure>
 </div>
-</div>
 
 <hr>
-<div class="section">
 <h2>Part 1.7 — SDEdit: Image-to-Image Projection</h2>
 
-<p><strong>Approach & Function Explanation:</strong> The <code>sdedit(im, i_start, prompt_embeds)</code> function adds noise to an input image and then iteratively denoises it.  
-Higher noise results in stronger edits. Text guidance can be added with CFG to perform style transfer or naturalization.</p>
+<p>Equation for SDEdit:</p>
+<pre>
+x_t = √(α̅_t) * x_0 + √(1 - α̅_t) * ε
+Iteratively denoise with CFG to generate edited output
+</pre>
+<p><strong>Thought Process:</strong> Adding noise controls strength of edits. Low noise → minor changes, high noise → strong stylization guided by text prompt.</p>
 
 <div class="img-row">
-  <figure><img src="img/sdedit_1.png"><figcaption>i_start=1-20</figcaption></figure>
-  <figure><img src="img/sdedit_2.png"><figcaption>i_start=1-20</figcaption></figure>
-  <figure><img src="img/sdedit_3.png"><figcaption>i_start=1-20</figcaption></figure>
-</div>
-</div>
-
-<hr>
-<div class="section">
-<h2>Part 1.7.1 — Editing Web Images & Hand-Drawn Images</h2>
-
-<p><strong>Approach:</strong> Non-photorealistic images are projected onto the natural image manifold using noise addition and iterative denoising. The function is the same as SDEdit; only the input image changes.</p>
-
-<h3>Web Image Example</h3>
-<figure><img src="img/web_1.png"><figcaption>i_start=1-20</figcaption></figure>
-
-<h3>Hand-Drawn Examples</h3>
-<figure><img src="img/draw1_1.png"><figcaption>Drawn Image 1 (i=1-20)</figcaption></figure>
-<figure><img src="img/draw1_20.png"><figcaption>Drawn Image</figcaption></figure>
-<figure><img src="img/draw2_1.png"><figcaption>Drawn Image 2 (i=1-20)</figcaption></figure>
-<figure><img src="img/draw2_20.png"><figcaption>Drawn Image (i=20)</figcaption></figure>
+  <figure><img src="img/sdedit_1.png"><figcaption>Edited i_start 1-20</figcaption></figure>
+  <figure><img src="img/sdedit_2.png"><figcaption>Edited i_start 1-20</figcaption></figure>
+  <figure><img src="img/sdedit_3.png"><figcaption>Edited i_start 1-20</figcaption></figure>
 </div>
 
 <hr>
-<div class="section">
+<h2>Part 1.7.1 — Editing Web & Hand-Drawn Images</h2>
+
+<p><strong>Thought Process:</strong> Non-realistic inputs (sketches) can be projected onto the natural image manifold via CFG denoising for creative outputs.</p>
+<div class="img-row">
+  <figure><img src="img/web_1.png"><figcaption>Web Image Edit</figcaption></figure>
+</div>
+<div class="img-row">
+  <figure><img src="img/draw1_1.png"><figcaption>Drawn Image 1</figcaption></figure>
+  <figure><img src="img/draw1_20.png"><figcaption>Drawn Image 1 (i=20)</figcaption></figure>
+  <figure><img src="img/draw2_1.png"><figcaption>Drawn Image 2</figcaption></figure>
+  <figure><img src="img/draw2_20.png"><figcaption>Drawn Image 2 (i=20)</figcaption></figure>
+</div>
+
+<hr>
 <h2>Part 1.7.2 — Inpainting</h2>
 
-<p><strong>Approach & Function Explanation:</strong> The <code>inpaint(im, mask, i_start, prompt_embeds)</code> function performs iterative denoising while keeping unmasked regions from the original noisy image.  
-This ensures that only masked areas are regenerated. It is essentially <code>iterative_denoise_cfg</code> with a mask constraint.</p>
+<p>Equation for inpainting:</p>
+<pre>
+x_{t-1}^{new} = mask * x_0 + (1-mask) * x_{t-1}^{predicted}
+</pre>
+<p><strong>Thought Process:</strong> Preserve unmasked pixels while generating content in masked regions using iterative denoising.</p>
 
-<h3>Mask</h3>
-<figure><img src="img/mask.png"><figcaption>Mask</figcaption></figure>
-
-<h3>Inpainting Results</h3>
+<div class="img-row">
+  <figure><img src="img/mask.png"><figcaption>Mask</figcaption></figure>
+</div>
 <div class="img-row">
   <figure><img src="img/inpaint1.png"><figcaption>Result 1</figcaption></figure>
   <figure><img src="img/inpaint2.png"><figcaption>Result 2</figcaption></figure>
   <figure><img src="img/inpaint3.png"><figcaption>Result 3</figcaption></figure>
 </div>
-</div>
 
 <hr>
-<div class="section">
 <h2>Part 1.7.3 — Text-Conditional Image-to-Image Translation</h2>
-
-<p><strong>Approach:</strong> SDEdit guided by text prompts to control style and content of the image. The function is the same as SDEdit, only the prompt changes.</p>
-
+<p><strong>Thought Process:</strong> Use text prompt for stronger guidance in image editing. Output gradually aligns with prompt while preserving structure.</p>
 <div class="img-row">
   <figure><img src="img/txt_1.png"><figcaption>i_start=1-20</figcaption></figure>
   <figure><img src="img/txt_2.png"><figcaption>i_start=1-20</figcaption></figure>
   <figure><img src="img/txt_3.png"><figcaption>i_start=1-20</figcaption></figure>
 </div>
-</div>
 
 <hr>
-<div class="section">
 <h2>Part 1.8 — Visual Anagrams</h2>
 
-<p><strong>Approach & Function Explanation:</strong> The <code>visual_anagrams(im, prompt_up, prompt_flip)</code> function computes noise predictions for both upright and flipped images, averages them, and generates a perceptual illusion. Implementation is based on iterative denoising with CFG.</p>
+<p>Equation for visual anagrams:</p>
+<pre>
+ε̂ = (ε̂_prompt1 + flip(ε̂_prompt2)) / 2
+x_{t-1} = reverse_step(x_t, ε̂)
+</pre>
+<p><strong>Thought Process:</strong> Average noise estimates from two prompts (one flipped) to create images that change appearance when rotated.</p>
 
 <div class="img-row">
   <figure><img src="img/anagram1_upright.png"><figcaption>Upright</figcaption></figure>
   <figure><img src="img/anagram1_flipped.png"><figcaption>Flipped</figcaption></figure>
 </div>
-
 <div class="img-row">
   <figure><img src="img/anagram2_upright.png"><figcaption>Upright</figcaption></figure>
   <figure><img src="img/anagram2_flipped.png"><figcaption>Flipped</figcaption></figure>
 </div>
-</div>
 
 <hr>
-<div class="section">
 <h2>Part 1.9 — Hybrid Images</h2>
 
-<p><strong>Approach & Function Explanation:</strong> The <code>make_hybrids(im, prompt1, prompt2)</code> function combines two prompts by taking low-frequency noise from one and high-frequency noise from the other.  
-Low-frequency is extracted using Gaussian Blur (kernel_size=33, sigma=2), high-frequency = original - low-frequency. Implementation is similar to iterative denoising.</p>
+<p>Equation for hybrid images:</p>
+<pre>
+ε̂_hybrid = LowPass(ε̂1) + HighPass(ε̂2)
+</pre>
+<p><strong>Thought Process:</strong> Combine low-frequency structure of one image with high-frequency detail of another. Low-pass filter is Gaussian blur (kernel=33, sigma=2).</p>
 
-<h3>Hybrid Image 1</h3>
 <div class="img-row">
   <figure><img src="img/hybrid1.png"><figcaption>Hybrid 1</figcaption></figure>
-</div>
-
-<h3>Hybrid Image 2</h3>
-<div class="img-row">
   <figure><img src="img/hybrid2.png"><figcaption>Hybrid 2</figcaption></figure>
-</div>
 </div>
 
 <hr>
 <p>End of CS180 Project 5A</p>
 <hr>
+
 
 <!-- ================================================================ -->
 <h1>Project 5 (Part B): Flow Matching from Scratch</h1>
